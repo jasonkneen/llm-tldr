@@ -308,7 +308,7 @@ def extract_units_from_project(project_path: str, lang: str = "python", respect_
 
     # Process files in parallel for better performance
     files = structure.get("files", [])
-    max_workers = int(os.environ.get("TLDR_MAX_WORKERS", min(os.cpu_count() or 4, 8)))
+    max_workers = int(os.environ.get("TLDR_MAX_WORKERS", os.cpu_count() or 4))
 
     # Use parallel processing if we have multiple files
     if len(files) > 1 and max_workers > 1:
