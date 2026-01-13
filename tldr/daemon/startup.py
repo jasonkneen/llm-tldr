@@ -87,7 +87,8 @@ def _try_acquire_pidfile_lock(pid_path: Path) -> Optional[IO]:
             try:
                 msvcrt.locking(pidfile.fileno(), msvcrt.LK_NBLCK, 1)
                 return pidfile
-            except IOError:
+            except (IOError, OSError):
+                # Lock held by another process
                 pidfile.close()
                 return None
         else:
@@ -98,6 +99,15 @@ def _try_acquire_pidfile_lock(pid_path: Path) -> Optional[IO]:
             except (IOError, BlockingIOError):
                 pidfile.close()
                 return None
+    except PermissionError:
+        # Windows: file locked by another process prevents open
+        logger.debug(f"PID file locked by another process: {pid_path}")
+        return None
+    except FileNotFoundError:
+        # File doesn't exist - no daemon running, but we can't create it here
+        # Return a special sentinel to distinguish from "locked"
+        logger.debug(f"PID file not found: {pid_path}")
+        return None
     except Exception as e:
         logger.debug(f"Failed to open PID file: {e}")
         return None
